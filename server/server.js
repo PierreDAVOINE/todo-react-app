@@ -5,6 +5,13 @@ const app = express();
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 const pool = require("./db");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const corsOptions = {
+  origin: "*",
+  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
 
 app.use(cors());
 app.use(express.json());
@@ -17,7 +24,26 @@ app.get("/todos/:userEmail", async (req, res) => {
       "SELECT * FROM todos WHERE user_email = $1",
       [userEmail]
     );
+    console.log(todos.rows);
     res.json(todos.rows);
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+// Création d'une nouvelle entrée
+
+app.post("/todos", async (req, res) => {
+  const { user_email, title, progress, date } = req.body;
+  console.log(user_email, title, progress, date);
+  const id = uuidv4();
+  console.log("create !");
+  try {
+    const newTodo = await pool.query(
+      `INSERT INTO todos(id, user_email, title, progress, date) VALUES($1, $2, $3, $4, $5);`,
+      [id, user_email, title, progress, date]
+    );
+    res.json(newTodo);
   } catch (error) {
     console.error(error);
   }
@@ -40,19 +66,61 @@ app.put("/todos/:id", async (req, res) => {
   }
 });
 
-// Création d'une nouvelle entrée
+// Supprimer une tâche
 
-app.post("/todos", async (req, res) => {
-  const { user_email, title, progress, date } = req.body;
-  // console.log(user_email, title, progress, date);
-  const id = uuidv4();
-  console.log("create !");
+app.delete("/todos/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const newTodo = await pool.query(
-      `INSERT INTO todos(id, user_email, title, progress, date) VALUES($1, $2, $3, $4, $5);`,
-      [id, user_email, title, progress, date]
+    const deleteToDo = await pool.query("DELETE FROM todos WHERE id = $1;", [
+      id,
+    ]);
+    res.json(deleteToDo);
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+// Créer un compte
+app.post("/signup", async (req, res) => {
+  const { email, password } = req.body;
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
+  try {
+    const signUp = await pool.query(
+      "INSERT INTO users (email, hashed_password) VALUES($1, $2)",
+      [email, hashedPassword]
     );
-    res.json(newTodo);
+    const token = jwt.sign({ email }, "secret", { expiresIn: "1hr" });
+    console.log("inscris et connecté !");
+    res.json({ email, token });
+  } catch (error) {
+    console.error(error);
+    if (error) {
+      res.json({ detail: error.detail });
+    }
+  }
+});
+
+// Se connecter
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const users = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+    if (!users.rows.length) return res.json({ detail: "User does not exist!" });
+    console.log("on compare les mdp");
+    const success = await bcrypt.compare(
+      password,
+      users.rows[0].hashed_password
+    );
+
+    if (success) {
+      const token = jwt.sign({ email }, "secret", { expiresIn: "1hr" });
+      res.json({ email: users.rows[0].email, token });
+    } else {
+      res.json({ detail: "Login failed" });
+    }
   } catch (error) {
     console.error(error);
   }

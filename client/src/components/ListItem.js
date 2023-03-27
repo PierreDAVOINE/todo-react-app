@@ -5,6 +5,24 @@ import Modal from "./Modal";
 
 const ListItem = ({ task, getData }) => {
   const [showModal, setShowModal] = useState(false);
+
+  // Supprimer une tâche
+  const deleteItem = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_SERVERURL}/todos/${task.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (response.status === 200) {
+        getData();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <li className="list-item">
       <div className="info-container">
@@ -17,7 +35,9 @@ const ListItem = ({ task, getData }) => {
         <button className="edit" onClick={() => setShowModal(true)}>
           EDIT
         </button>
-        <button className="delete">DELETE</button>
+        <button className="delete" onClick={deleteItem}>
+          DELETE
+        </button>
       </div>
       {showModal && (
         <Modal

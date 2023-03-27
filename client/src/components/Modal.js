@@ -1,19 +1,22 @@
 import { useState } from "react";
+import { useCookies } from "react-cookie";
 
 const Modal = ({ mode, setShowModal, getData, task }) => {
+  const [cookies, setCookie, removeCookie] = useCookies();
   const editMode = mode === "edit" ? true : false;
 
   const [data, setData] = useState({
-    user_email: editMode ? task.user_email : "davoine.pierre.pro@gmail.com",
+    user_email: editMode ? task.user_email : cookies.Email,
     title: editMode ? task.title : null,
     progress: editMode ? task.progress : 50,
     date: editMode ? task.date : new Date(),
   });
 
+  // Ajouter une nouvelle tâche
   const postData = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:8001/todos", {
+      const response = await fetch(`${process.env.REACT_APP_SERVERURL}/todos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -28,14 +31,18 @@ const Modal = ({ mode, setShowModal, getData, task }) => {
     }
   };
 
+  // Modifier une tâche
   const editData = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8001/todos/${task.id}`, {
-        method: "PUT",
-        headers: { "Content-type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_SERVERURL}/todos/${task.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
       if (response.status === 200) {
         setShowModal(false);
         getData();
