@@ -112,6 +112,10 @@ input {
     justify-content: space-between;
 }
 
+.task-title {
+    width: 300px;
+}
+
 .tick {
     padding: 10px;
     fill:none;
@@ -182,6 +186,22 @@ input {
     
 }
 
+
+/*==============*/
+/*======BAR====*/
+/*==============*/
+
+.outer-bar{
+width: 200px;
+height: 14px;
+background-color: rgb(216, 216, 216);
+border-radius: 7px;
+overflow: hidden;
+}
+
+.inner-bar {
+    height: 14px;
+}
 
 /*==============*/
 /*======AUTH====*/
